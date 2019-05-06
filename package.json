@@ -1,0 +1,20 @@
+{
+  "private": true,
+  "name": "rex-stats",
+  "version": "1.0.0",
+  "description": "Calculates REX price statistics",
+  "main": "index.js",
+  "scripts": {
+    "start": "ts-node index.ts"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@dfuse/client": "^0.2.4",
+    "@types/debug": "^4.1.4",
+    "@types/node": "^11.13.8",
+    "dotenv": "^7.0.0",
+    "node-fetch": "^2.5.0",
+    "ws": "^7.0.0"
+  }
+}
