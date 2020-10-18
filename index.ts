@@ -2,6 +2,8 @@ import PQueue from "p-queue";
 import { ONE_DAY, ONE_HOUR, rpc, client } from "./src/config";
 import { timeout, get_last_24h_block } from "./src/utils";
 import { get_block, Block } from "./src/v1_get_block";
+import * as fs from "fs";
+import * as path from "path";
 
 // (async () => {
 //     const blockNum = await get_last_24h_block();
@@ -26,15 +28,12 @@ function get_cpu_usage_biller(block: Block) {
     return billers;
 }
 
-( async () => {
-    // const start_block = await get_last_24h_block();
-    const start_block = 147149451 - 1 - ONE_HOUR; // 2020-10-15T00:00:00.000
-    const end_block = start_block - ONE_DAY + ONE_HOUR;
-    // const timestamp = (await get_block(start_block)).timestamp.split("T")[0];
+async function start(start_block: number, interval: number ): Promise<any> {
+    const end_block = start_block - interval;
+    const timestamp = (await get_block(start_block)).timestamp.split(".")[0];
 
     // map<biller, cpu_usuage_us>
-
-    const dates: Map<string, Map<string, number>> = new Map();
+    const billers: Map<string, number> = new Map();
 
     // queue up promises
     const queue = new PQueue({concurrency: 5});
@@ -42,12 +41,8 @@ function get_cpu_usage_biller(block: Block) {
     for (let i = start_block; i > end_block; i--) {
         queue.add(async () => {
             const block = await get_block(i);
-            const timestamp = block.timestamp.split("T")[0];
-            console.log(i, block.timestamp)
             for ( const { biller, cpu_usage_us } of get_cpu_usage_biller(block)) {
-                const billers = dates.get( timestamp ) || new Map();
                 billers.set(biller, cpu_usage_us + Number(billers.get(biller) || 0 ))
-                dates.set( timestamp, billers );
             }
         });
     }
@@ -56,12 +51,17 @@ function get_cpu_usage_biller(block: Block) {
     await queue.onIdle();
 
     // logging
-    console.log(["timestamp", "block_num", "biller","cpu_usage_us"].join(","));
+    const filepath = path.join(__dirname, "stats", "cpu_usage-" + timestamp + ".csv");
+    const writer = fs.createWriteStream(filepath)
+    writer.write(["timestamp", "block_num", "biller","cpu_usage_us"].join(",") + "\n");
 
-    for ( const [timestamp, billers] of dates) {
-        for ( const [biller, cpu_usage_us] of billers) {
-            console.log([timestamp, biller, cpu_usage_us].join(","));
-        }
+    for ( const [biller, cpu_usage_us] of billers) {
+        writer.write([timestamp, biller, cpu_usage_us].join(",") + "\n");
     }
-    // console.log(billers);
+    return start( start_block - interval, interval)
+}
+
+(async () => {
+    const interval = ONE_HOUR;
+    start(147149451, interval); // 2020-10-15T00:00:00.000
 })();
