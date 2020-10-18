@@ -1,4 +1,4 @@
-import { rpc } from "./config";
+import { rpc, PAUSE_MS } from "./config";
 import { timeout } from "./utils";
 
 export interface Block {
@@ -77,7 +77,7 @@ export async function get_block( block_num: number, retry = 3 ): Promise<Block> 
         // return block;
     } catch (e) {
         console.error(`[ERROR] ❗️ trace API error [${block_num}]`);
-        await timeout(1000); // pause for 1s
+        await timeout(PAUSE_MS); // pause for 1s
         return get_block( block_num );
     }
 }
